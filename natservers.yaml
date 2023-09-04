@@ -1,0 +1,18 @@
+- name: Configure NAT using iptables
+  hosts: natservers
+  tasks:
+    - name: Be sure ip_forward is enabled
+      ansible.posix.sysctl:
+        name: net.ipv4.ip_forward
+        value: "1"
+        sysctl_set: true
+        state: present
+        reload: true
+    - name: Mask internal requests with NAT server IP
+      ansible.builtin.iptables:
+        table: nat
+        chain: POSTROUTING
+        action: append
+        chain_management: true
+        state: present
+        jump: MASQUERADE

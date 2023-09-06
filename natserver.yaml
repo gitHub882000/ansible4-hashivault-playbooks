@@ -2,6 +2,7 @@
   hosts: natservers
   tasks:
     - name: Be sure ip_forward is enabled
+      become: true
       ansible.posix.sysctl:
         name: net.ipv4.ip_forward
         value: "1"
@@ -9,6 +10,7 @@
         state: present
         reload: true
     - name: Mask internal requests with NAT server IP
+      become: true
       ansible.builtin.iptables:
         table: nat
         chain: POSTROUTING

@@ -1,5 +1,2 @@
-[natservers]
-8.8.8.8
-
-[hashivaultservers]
-8.8.8.8
+nat
+hashivault

@@ -1,5 +1,5 @@
 - name: Configure NAT using iptables
-  hosts: natservers
+  hosts: natserver
   tasks:
     - name: Be sure ip_forward is enabled
       become: true

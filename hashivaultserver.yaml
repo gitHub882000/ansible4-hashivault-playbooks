@@ -4,19 +4,29 @@
   environment:
     VAULT_ADDR: "http://{{ vault_listen_address }}"
   tasks:
-    - name: Install Required Packages
+    - name: Install Unzip Package
       apt:
-        name: "{{ item }}"
+        name: unzip
         state: present
-      with_items:
-        - unzip
-        - awscli  # Install AWS CLI if not already installed
 
-    - name: Download Hashicorp GPG key
-      command: "wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg"
+    - name: Download AWS CLI Package
+      get_url:
+        url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+        dest: awscliv2.zip
+
+    - name: Unzip AWS CLI Package
+      unarchive:
+        src: awscliv2.zip
+        dest: ./
+        remote_src: yes
+    
+    - name: Run installation script
+      command: ./aws/install --update
 
     - name: Setup Hashicorp GPG key
-      command: "echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list"
+      shell: |
+        wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+        echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
 
     - name: Update apt cache
       apt:
@@ -27,15 +37,15 @@
         name: vault
         state: present
 
-    - name: Copy Vault TLS Certificate from local
-      copy:
-        src: "{{ local_tls_cert_file }}"
-        dest: "{{ vault_tls_cert_file }}"
+    # - name: Copy Vault TLS Certificate from local
+    #   copy:
+    #     src: "{{ local_tls_cert_file }}"
+    #     dest: "{{ vault_tls_cert_file }}"
 
-    - name: Copy Vault TLS Private Key from local
-      copy:
-        src: "{{ local_tls_key_file }}"
-        dest: "{{ vault_tls_key_file }}"
+    # - name: Copy Vault TLS Private Key from local
+    #   copy:
+    #     src: "{{ local_tls_key_file }}"
+    #     dest: "{{ vault_tls_key_file }}"
 
     - name: Configure Vault Server
       template:

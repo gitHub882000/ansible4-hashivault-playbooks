@@ -2,7 +2,7 @@
   hosts: hashivaultserver
   become: true
   environment:
-    VAULT_ADDR: "http://{{ vault_listen_address }}"
+    VAULT_ADDR: "https://{{ vault_listen_address }}"
   tasks:
     - name: Install Unzip Package
       apt:
@@ -23,16 +23,6 @@
     - name: Run installation script
       command: ./aws/install --update
 
-    # - name: Copy Vault TLS Certificate from local
-    #   copy:
-    #     src: "{{ local_tls_cert_file }}"
-    #     dest: "{{ vault_tls_cert_file }}"
-
-    # - name: Copy Vault TLS Private Key from local
-    #   copy:
-    #     src: "{{ local_tls_key_file }}"
-    #     dest: "{{ vault_tls_key_file }}"
-
     - name: Setup Hashicorp GPG key
       shell: |
         wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
@@ -47,6 +37,17 @@
         name: vault
         state: present
 
+    - name: Create confidential directory
+      file:
+        path: "/home/{{ ansible_user }}/.confidential"
+        state: directory
+
+    - name: Retrieve TLS cert
+      shell: aws secretsmanager get-secret-value --secret-id {{ vault_tls_cert_secret_id }} --query 'SecretBinary' | sed 's/"//g' | base64 --decode > {{ vault_tls_cert_file }}
+
+    - name: Retrieve TLS key
+      shell: aws secretsmanager get-secret-value --secret-id {{ vault_tls_key_secret_id }} --query 'SecretBinary' | sed 's/"//g' | base64 --decode > {{ vault_tls_key_file }}
+
     - name: Configure Vault Server
       template:
         src: ./templates/hashivault.hcl.j2
@@ -56,8 +57,8 @@
       command: "vault server -config={{ vault_config_dir }}/hashivault.hcl"
       async: 360000
       poll: 0
-      environment:
-        VAULT_ADDR: "http://{{ vault_listen_address }}"
+      # environment:
+      #   VAULT_ADDR: "https://{{ vault_listen_address }}"
 
     - name: Wait for Vault to Start
       wait_for:
@@ -73,11 +74,6 @@
       debug:
         var: vault_init.stdout_lines
       ignore_errors: true
-    
-    - name: Create confidential directory
-      file:
-        path: "/home/{{ ansible_user }}/.confidential"
-        state: directory
 
     - name: Store Vault Unseal Keys and Root Token in a Secure Location
       copy:

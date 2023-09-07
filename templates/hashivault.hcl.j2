@@ -1,11 +1,12 @@
 listener "tcp" {
-  address          = "{{ vault_listen_address }}"
-  tls_disable = "true"
+  address       = "{{ vault_listen_address }}"
+  tls_cert_file = "{{ vault_tls_cert_file }}"
+  tls_key_file  = "{{ vault_tls_key_file }}"
 }
 
 storage "dynamodb" {
-  table = "{{ dynamodb_table_name }}"
-  region     = "{{ aws_region }}"
+  table  = "{{ dynamodb_table_name }}"
+  region = "{{ aws_region }}"
 }
 
-api_addr = "http://{{ vault_listen_address }}"
+api_addr = "https://{{ vault_listen_address }}"

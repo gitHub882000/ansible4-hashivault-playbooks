@@ -1,7 +1,11 @@
 ansible_host: 
 vault_listen_address: "0.0.0.0:8200"
 vault_config_dir: /etc/vault.d
-vault_tls_cert_file: /etc/vault/hashivault.crt
-vault_tls_key_file: /etc/vault/hashivault.key
+
+vault_tls_cert_file: /home/{{ ansible_user }}/.confidential/hashivault.cer
+vault_tls_cert_secret_id: ansible4-hashivault-hashivault-cert
+vault_tls_key_file: /home/{{ ansible_user }}/.confidential/hashivault.key
+vault_tls_key_secret_id: ansible4-hashivault-hashivault-key
+
 dynamodb_table_name: hashivault
 aws_region: ap-southeast-1

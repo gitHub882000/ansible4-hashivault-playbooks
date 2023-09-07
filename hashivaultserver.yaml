@@ -12,16 +12,26 @@
     - name: Download AWS CLI Package
       get_url:
         url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
-        dest: awscliv2.zip
+        dest: "/home/{{ ansible_user }}/"
 
     - name: Unzip AWS CLI Package
       unarchive:
-        src: awscliv2.zip
-        dest: ./
+        src: awscli-exe-linux-x86_64.zip
+        dest: "/home/{{ ansible_user }}/"
         remote_src: yes
     
     - name: Run installation script
       command: ./aws/install --update
+
+    # - name: Copy Vault TLS Certificate from local
+    #   copy:
+    #     src: "{{ local_tls_cert_file }}"
+    #     dest: "{{ vault_tls_cert_file }}"
+
+    # - name: Copy Vault TLS Private Key from local
+    #   copy:
+    #     src: "{{ local_tls_key_file }}"
+    #     dest: "{{ vault_tls_key_file }}"
 
     - name: Setup Hashicorp GPG key
       shell: |
@@ -36,16 +46,6 @@
       apt:
         name: vault
         state: present
-
-    # - name: Copy Vault TLS Certificate from local
-    #   copy:
-    #     src: "{{ local_tls_cert_file }}"
-    #     dest: "{{ vault_tls_cert_file }}"
-
-    # - name: Copy Vault TLS Private Key from local
-    #   copy:
-    #     src: "{{ local_tls_key_file }}"
-    #     dest: "{{ vault_tls_key_file }}"
 
     - name: Configure Vault Server
       template:
@@ -69,22 +69,31 @@
       command: "vault operator init"
       register: vault_init
 
+    - name: Display Vault Unseal Keys and Root Token
+      debug:
+        var: vault_init.stdout_lines
+      ignore_errors: true
+    
+    - name: Create confidential directory
+      file:
+        path: "/home/{{ ansible_user }}/.confidential"
+        state: directory
+
+    - name: Store Vault Unseal Keys and Root Token in a Secure Location
+      copy:
+        content: "{{ vault_init.stdout_lines | join('\n') }}"
+        dest: "/home/{{ ansible_user }}/.confidential/vault_init.txt"
+        mode: '444'
+
     - name: Unseal Vault
-      command: "vault operator unseal {{ item }}"
-      with_items: "{{ vault_init.stdout_lines }}"
+      command: "vault operator unseal {{ item | regex_search('(?<=:\\s).*') }}"
+      loop: "{{ vault_init.stdout_lines[:3] }}"
+
+    - name: Login Vault
+      command: "vault login {{ vault_init.stdout_lines[6] | regex_search('(?<=:\\s).*') }}"
 
     - name: Configure Vault Storage Backend
       command: "vault secrets enable -path=secret kv"
 
     - name: Enable DynamoDB as Storage Backend
       command: "vault secrets enable -path=dynamodb database"
-
-    - name: Display Vault Unseal Keys and Root Token
-      debug:
-        var: vault_init.stdout_lines
-
-    - name: Store Vault Unseal Keys and Root Token in a Secure Location
-      copy:
-        content: "{{ vault_init.stdout_lines | join('\n') }}"
-        dest: ~/.confidential/vault_init.txt
-        mode: '444'

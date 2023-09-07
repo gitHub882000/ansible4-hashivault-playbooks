@@ -4,7 +4,6 @@ listener "tcp" {
 }
 
 storage "dynamodb" {
-  ha_enabled = "true"
   table = "{{ dynamodb_table_name }}"
   region     = "{{ aws_region }}"
 }

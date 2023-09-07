@@ -1,5 +1,5 @@
-ansible_host: 10.0.7.141
-vault_listen_address: "127.0.0.1:8200"
+ansible_host: 
+vault_listen_address: "0.0.0.0:8200"
 vault_config_dir: /etc/vault.d
 vault_tls_cert_file: /etc/vault/hashivault.crt
 vault_tls_key_file: /etc/vault/hashivault.key

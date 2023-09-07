@@ -54,7 +54,7 @@
 
     - name: Start Vault Server
       command: "vault server -config={{ vault_config_dir }}/hashivault.hcl"
-      async: 600
+      async: 360000
       poll: 0
       environment:
         VAULT_ADDR: "http://{{ vault_listen_address }}"

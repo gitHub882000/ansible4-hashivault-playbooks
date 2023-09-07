@@ -9,6 +9,7 @@
         sysctl_set: true
         state: present
         reload: true
+
     - name: Mask internal requests with NAT server IP
       become: true
       ansible.builtin.iptables:

@@ -1,0 +1,10 @@
+listener "tcp" {
+  address          = "{{ vault_listen_address }}"
+  tls_disable = true
+}
+
+storage "dynamodb" {
+  ha_enabled = "true"
+  table_name = "{{ dynamodb_table_name }}"
+  region     = "{{ aws_region }}"
+}

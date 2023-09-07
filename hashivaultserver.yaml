@@ -1,0 +1,80 @@
+- name: Configure Hashicorp Vault with DynamoDB backend and TLS
+  hosts: hashivaultserver
+  become: true
+  environment:
+    VAULT_ADDR: "http://{{ vault_listen_address }}"
+  tasks:
+    - name: Install Required Packages
+      apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - unzip
+        - awscli  # Install AWS CLI if not already installed
+
+    - name: Download Hashicorp GPG key
+      command: "wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg"
+
+    - name: Setup Hashicorp GPG key
+      command: "echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list"
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install HashiCorp Vault
+      apt:
+        name: vault
+        state: present
+
+    - name: Copy Vault TLS Certificate from local
+      copy:
+        src: "{{ local_tls_cert_file }}"
+        dest: "{{ vault_tls_cert_file }}"
+
+    - name: Copy Vault TLS Private Key from local
+      copy:
+        src: "{{ local_tls_key_file }}"
+        dest: "{{ vault_tls_key_file }}"
+
+    - name: Configure Vault Server
+      template:
+        src: ./templates/hashivault.hcl.j2
+        dest: "{{ vault_config_dir }}/hashivault.hcl"
+
+    - name: Start Vault Server
+      command: "vault server -config={{ vault_config_dir }}/hashivault.hcl"
+      async: 600
+      poll: 0
+      environment:
+        VAULT_ADDR: "http://{{ vault_listen_address }}"
+
+    - name: Wait for Vault to Start
+      wait_for:
+        port: 8200
+        delay: 5
+        timeout: 300
+
+    - name: Initialize Vault
+      command: "vault operator init"
+      register: vault_init
+
+    - name: Unseal Vault
+      command: "vault operator unseal {{ item }}"
+      with_items: "{{ vault_init.stdout_lines }}"
+
+    - name: Configure Vault Storage Backend
+      command: "vault secrets enable -path=secret kv"
+
+    - name: Enable DynamoDB as Storage Backend
+      command: "vault secrets enable -path=dynamodb database"
+
+    - name: Display Vault Unseal Keys and Root Token
+      debug:
+        var: vault_init.stdout_lines
+
+    - name: Store Vault Unseal Keys and Root Token in a Secure Location
+      copy:
+        content: "{{ vault_init.stdout_lines | join('\n') }}"
+        dest: ~/.confidential/vault_init.txt
+        mode: '444'

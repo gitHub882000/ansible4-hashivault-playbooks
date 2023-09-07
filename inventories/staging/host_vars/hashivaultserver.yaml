@@ -1,0 +1,8 @@
+ansible_host: 
+vault_listen_address: "127.0.0.1:8200"
+vault_tls_cert_file: /etc/vault/hashivault.crt
+vault_tls_key_file: /etc/vault/hashivault.key
+local_tls_cert_file: /home/ubuntu/.confidential/hashivault.crt
+local_tls_key_file: /home/ubuntu/.confidential/hashivault.key
+dynamodb_table_name: hashivault
+aws_region: ap-southeast-1

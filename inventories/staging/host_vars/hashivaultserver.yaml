@@ -1,5 +1,6 @@
 ansible_host: 
 vault_listen_address: "0.0.0.0:8200"
+vault_remote_address: "vault.lab.aandd.io:8200"
 vault_config_dir: /etc/vault.d
 
 vault_tls_cert_file: /home/{{ ansible_user }}/.confidential/hashivault.cer
